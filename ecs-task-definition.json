@@ -1,18 +1,11 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:ap-south-1:339712866472:task-definition/demo-ecs-taskdefinition:2",
+    "taskDefinitionArn": "arn:aws:ecs:ap-south-1:339712866472:task-definition/my-ecs-taskdefinition:1",
     "containerDefinitions": [
         {
             "name": "notification",
             "image": "339712866472.dkr.ecr.ap-south-1.amazonaws.com/notification-api",
             "cpu": 0,
             "portMappings": [
-                {
-                    "name": "notification-80-tcp",
-                    "containerPort": 80,
-                    "hostPort": 80,
-                    "protocol": "tcp",
-                    "appProtocol": "http"
-                },
                 {
                     "name": "notification-3000-tcp",
                     "containerPort": 3000,
@@ -31,7 +24,7 @@
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "/ecs/demo-ecs-taskdefinition",
+                    "awslogs-group": "/ecs/my-ecs-taskdefinition",
                     "awslogs-region": "ap-south-1",
                     "awslogs-stream-prefix": "ecs"
                 },
@@ -40,10 +33,11 @@
             "systemControls": []
         }
     ],
-    "family": "demo-ecs-taskdefinition",
+    "family": "my-ecs-taskdefinition",
+    "taskRoleArn": "arn:aws:iam::339712866472:role/ecsTaskExecutionRole",
     "executionRoleArn": "arn:aws:iam::339712866472:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
-    "revision": 2,
+    "revision": 1,
     "volumes": [],
     "status": "ACTIVE",
     "requiresAttributes": [
@@ -58,6 +52,9 @@
         },
         {
             "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.task-iam-role"
         },
         {
             "name": "ecs.capability.execution-role-ecr-pull"
@@ -86,7 +83,7 @@
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
-    "registeredAt": "2024-05-31T06:50:44.599Z",
+    "registeredAt": "2024-05-31T10:18:28.422Z",
     "registeredBy": "arn:aws:iam::339712866472:user/jayadeep",
     "tags": [
         {
