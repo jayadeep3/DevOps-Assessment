@@ -34,7 +34,7 @@ env:
   ECR_REPOSITORY: notification-api           # set this to your Amazon ECR repository name
   ECS_SERVICE: notification                 # set this to your Amazon ECS service name
   ECS_CLUSTER: democluster                 # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: demo-ecs-taskdefinition # set this to the path to your Amazon ECS task definition
+  ECS_TASK_DEFINITION: demo-ecs-taskdefinition:2 # set this to the path to your Amazon ECS task definition
                                                # file, e.g. .aws/task-definition.json
   CONTAINER_NAME: notification           # set this to the name of the container in the
                                                # containerDefinitions section of your task definition
