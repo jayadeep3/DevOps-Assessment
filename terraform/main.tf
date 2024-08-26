@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-west-2"
+  region = "ap-south-1"
 }
 
 resource "aws_vpc" "main" {
@@ -37,6 +37,13 @@ resource "aws_security_group" "ecs_sg" {
   ingress {
     from_port   = 443
     to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -93,4 +100,107 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_policy_attachment" "ecs_task_execution_policy" {
-  name       = "ecsTaskExecution
+  name       = "ecsTaskExecutionPolicy"
+  roles      = [aws_iam_role.ecs_task_execution_role.name]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_policy" "ecs_task_secrets_policy" {
+  name        = "ecsTaskSecretsPolicy"
+  description = "Policy to allow ECS tasks to retrieve secrets from Secrets Manager"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+        Effect   = "Allow"
+        Resource = aws_secretsmanager_secret.app_secret.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_secrets_policy_attach" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.ecs_task_secrets_policy.arn
+}
+
+resource "aws_secretsmanager_secret" "app_secret" {
+  name        = "my-app-secret"
+  description = "Secret for MyApp"
+
+  tags = {
+    Name = "MyAppSecret"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "app_secret_version" {
+  secret_id     = aws_secretsmanager_secret.app_secret.id
+  secret_string = jsonencode({
+    username = "myUsername"
+    password = "myPassword"
+    api_key  = "myApiKey"
+  })
+}
+
+resource "aws_ecs_task_definition" "task" {
+  family                   = "my-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+
+  container_definitions = jsonencode([{
+    name      = "my-app"
+    image     = "${aws_ecr_repository.repo.repository_url}:latest"
+    essential = true
+    portMappings = [{
+      containerPort = 3000
+      hostPort      = 3000
+      protocol      = "tcp"
+    }]
+    environment = [
+      {
+        name  = "USERNAME"
+        valueFrom = "${aws_secretsmanager_secret.app_secret.arn}:username"
+      },
+      {
+        name  = "PASSWORD"
+        valueFrom = "${aws_secretsmanager_secret.app_secret.arn}:password"
+      },
+      {
+        name  = "API_KEY"
+        valueFrom = "${aws_secretsmanager_secret.app_secret.arn}:api_key"
+      }
+    ]
+  }])
+
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn      = aws_iam_role.ecs_task_execution_role.arn
+
+  tags = {
+    Name = "MyAppTask"
+  }
+}
+
+resource "aws_ecs_service" "service" {
+  name            = "my-service"
+  cluster         = aws_ecs_cluster.ecs_cluster.id
+  task_definition = aws_ecs_task_definition.task.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+  network_configuration {
+    subnets         = aws_subnet.subnet[*].id
+    security_groups = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  tags = {
+    Name = "MyAppService"
+  }
+}
