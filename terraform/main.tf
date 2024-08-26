@@ -127,24 +127,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_secrets_policy_attach" {
   policy_arn = aws_iam_policy.ecs_task_secrets_policy.arn
 }
 
-resource "aws_secretsmanager_secret" "app_secret" {
-  name        = "my-app-secret"
-  description = "Secret for MyApp"
-
-  tags = {
-    Name = "MyAppSecret"
-  }
-}
-
-resource "aws_secretsmanager_secret_version" "app_secret_version" {
-  secret_id     = aws_secretsmanager_secret.app_secret.id
-  secret_string = jsonencode({
-    username = "myUsername"
-    password = "myPassword"
-    api_key  = "myApiKey"
-  })
-}
-
 resource "aws_ecs_task_definition" "task" {
   family                   = "my-task"
   network_mode             = "awsvpc"
@@ -163,16 +145,12 @@ resource "aws_ecs_task_definition" "task" {
     }]
     environment = [
       {
-        name  = "USERNAME"
-        valueFrom = "${aws_secretsmanager_secret.app_secret.arn}:username"
+        name  = "AWS_ACCESS_KEY_ID"
+        value = secrets.AWS_ACCESS_KEY_ID
       },
       {
-        name  = "PASSWORD"
-        valueFrom = "${aws_secretsmanager_secret.app_secret.arn}:password"
-      },
-      {
-        name  = "API_KEY"
-        valueFrom = "${aws_secretsmanager_secret.app_secret.arn}:api_key"
+        name  = "AWS_SECRET_ACCESS_KEY"
+        value = secrets.AWS_SECRET_ACCESS_KEY
       }
     ]
   }])
